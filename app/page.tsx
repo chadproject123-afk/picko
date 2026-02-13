@@ -127,7 +127,10 @@ export default function Home() {
       console.log('🎯 [DEBUG] 추천 완료!')
     } catch (error) {
       console.error('❌ [ERROR] 추천 실패:', error)
-      alert('추천 중 오류가 발생했습니다.')
+      const errorMessage = error instanceof TypeError && error.message.includes('fetch')
+        ? '네트워크 연결을 확인해주세요. 인터넷이 끊어진 것 같습니다.'
+        : '추천 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+      alert(errorMessage)
     } finally {
       console.log('🎯 [DEBUG] 로딩 종료')
       setIsLoading(false)
