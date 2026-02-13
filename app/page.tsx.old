@@ -1,0 +1,299 @@
+'use client'
+
+import { useState, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Sparkles, ExternalLink, Calendar } from 'lucide-react'
+import { searchAITools } from './actions'
+import { AITool } from '@/types'
+
+export default function Home() {
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<AITool[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [isResultView, setIsResultView] = useState(false)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const handleSearch = async () => {
+    if (!query.trim()) {
+      alert('할 일을 입력해주세요!')
+      return
+    }
+
+    setIsLoading(true)
+    setIsResultView(true)
+
+    try {
+      const tools = await searchAITools(query)
+      setResults(tools)
+    } catch (error) {
+      console.error('검색 실패:', error)
+      alert('검색 중 오류가 발생했습니다.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleReset = () => {
+    setQuery('')
+    setResults([])
+    setIsResultView(false)
+    setTimeout(() => {
+      textareaRef.current?.focus()
+    }, 300)
+  }
+
+  const today = new Date().toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-purple-50">
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
+        <div className="max-w-2xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <motion.div
+              className="flex items-center gap-2"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+            >
+              <Sparkles className="w-6 h-6 text-indigo-600" />
+              <h1 className="text-2xl font-bold text-gray-900">Picko</h1>
+            </motion.div>
+            <motion.div
+              className="flex items-center gap-2 text-sm text-gray-500"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+            >
+              <Calendar className="w-4 h-4" />
+              {today}
+            </motion.div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-2xl mx-auto px-4 py-6">
+        <AnimatePresence mode="wait">
+          {!isResultView ? (
+            // Initial State - 입력 모드
+            <motion.div
+              key="input-mode"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]"
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.1 }}
+                className="w-full space-y-6"
+              >
+                <div className="text-center space-y-2">
+                  <h2 className="text-3xl font-bold text-gray-900">
+                    오늘 뭐 하실 건가요?
+                  </h2>
+                  <p className="text-gray-600">
+                    할 일을 입력하면 딱 맞는 AI 도구를 찾아드려요
+                  </p>
+                </div>
+
+                <Textarea
+                  ref={textareaRef}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={`예: 마케팅 보고서 작성
+예: 블로그 썸네일 이미지 제작
+예: 고객 이메일 자동 답장`}
+                  className="min-h-[200px] text-base resize-none focus:ring-2 focus:ring-indigo-500"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                      handleSearch()
+                    }
+                  }}
+                />
+
+                <Button
+                  onClick={handleSearch}
+                  size="lg"
+                  className="w-full h-14 text-lg bg-indigo-600 hover:bg-indigo-700"
+                  disabled={!query.trim()}
+                >
+                  <Sparkles className="w-5 h-5 mr-2" />
+                  AI 추천받기
+                </Button>
+
+                <p className="text-center text-sm text-gray-500">
+                  💡 <kbd className="px-2 py-1 bg-gray-100 rounded text-xs">⌘ + Enter</kbd> 로도 검색할 수 있어요
+                </p>
+              </motion.div>
+            </motion.div>
+          ) : (
+            // Result State - 결과 모드
+            <motion.div
+              key="result-mode"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6 pb-32"
+            >
+              {/* Todo Header (축소된 입력창) */}
+              <motion.div
+                initial={{ opacity: 0, y: 50, scale: 1.2 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{
+                  type: 'spring',
+                  stiffness: 100,
+                  damping: 20,
+                  duration: 0.6
+                }}
+                className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-500 mb-1">할 일</p>
+                    <p className="text-base font-medium text-gray-900 leading-relaxed">
+                      {query}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleReset}
+                    className="shrink-0"
+                  >
+                    다시 입력
+                  </Button>
+                </div>
+              </motion.div>
+
+              {/* Loading State */}
+              {isLoading && (
+  <div className="space-y-4">
+    <div className="text-center py-4">
+      <p className="text-indigo-600 font-medium animate-pulse">
+        🤖 AI가 최적의 도구를 찾고 있어요...
+      </p>
+    </div>
+    
+    {[1, 2, 3].map((i) => (
+      <Card key={i} className="animate-pulse">
+        <CardHeader>
+          <Skeleton className="h-6 w-3/4" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-4 w-full mb-2" />
+          <Skeleton className="h-4 w-5/6" />
+        </CardContent>
+      </Card>
+    ))}
+  </div>
+)}
+
+              {/* Results */}
+              {!isLoading && results.length === 0 && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="text-center py-12"
+                >
+                  <p className="text-gray-500 text-lg mb-4">
+                    😔 매칭되는 도구를 찾지 못했어요
+                  </p>
+                  <Button variant="outline" onClick={handleReset}>
+                    다른 키워드로 시도하기
+                  </Button>
+                </motion.div>
+              )}
+
+              {!isLoading && results.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="space-y-3"
+                >
+                  <p className="text-sm text-gray-600 px-1">
+                    🎯 {results.length}개의 도구를 찾았어요
+                  </p>
+
+                  {results.map((tool, index) => (
+                    <motion.div
+                      key={tool.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{
+                        delay: index * 0.05,
+                        duration: 0.3,
+                        ease: 'easeOut'
+                      }}
+                    >
+                      <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <CardTitle className="text-lg font-semibold">
+                              {tool.name}
+                            </CardTitle>
+                            <Badge
+                              variant={tool.free ? 'secondary' : 'default'}
+                              className="shrink-0"
+                            >
+                              {tool.free ? '🆓 무료' : '💰 유료'}
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          {tool.description_kr && (
+                            <p className="text-sm text-gray-600 leading-relaxed">
+                              {tool.description_kr}
+                            </p>
+                          )}
+
+                          {tool.strength_kr && (
+                            <div className="bg-indigo-50 rounded-lg p-3">
+                              <p className="text-xs font-medium text-indigo-900 mb-1">
+                                💡 주요 강점
+                              </p>
+                              <p className="text-sm text-indigo-800 leading-relaxed">
+                                {tool.strength_kr}
+                              </p>
+                            </div>
+                          )}
+
+                          {tool.category_kr && (
+                            <Badge variant="outline" className="text-xs">
+                              📂 {tool.category_kr}
+                            </Badge>
+                          )}
+
+                          {tool.link && (
+                            <Button
+                              className="w-full"
+                              onClick={() => window.open(tool.link!, '_blank')}
+                            >
+                              바로 시작하기
+                              <ExternalLink className="w-4 h-4 ml-2" />
+                            </Button>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
+    </div>
+  )
+}

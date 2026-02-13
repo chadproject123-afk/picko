@@ -8,11 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Checkbox } from '@/components/ui/checkbox'
-import {
-  Sparkles,
-  ExternalLink,
-  Calendar,
-  Plus,
+import { 
+  Sparkles, 
+  ExternalLink, 
+  Calendar, 
+  Plus, 
   Trash2,
   CheckCircle2,
   Circle
@@ -70,8 +70,8 @@ export default function Home() {
   }
 
   const handleToggleTodo = (id: string) => {
-    setTodos(todos.map(todo =>
-      todo.id === id
+    setTodos(todos.map(todo => 
+      todo.id === id 
         ? { ...todo, isCompleted: !todo.isCompleted }
         : todo
     ))
@@ -79,57 +79,34 @@ export default function Home() {
 
   const handleGetRecommendations = async () => {
     const incompleteTodos = todos.filter(t => !t.isCompleted)
-
-    console.log('🎯 [DEBUG] AI 추천 함수 호출됨!')
-    console.log('🎯 [DEBUG] 전체 할 일:', todos)
-    console.log('🎯 [DEBUG] 미완료 할 일:', incompleteTodos)
-
+    
     if (incompleteTodos.length === 0) {
       alert('추천받을 할 일을 추가해주세요!')
       return
     }
 
-    console.log('🎯 [DEBUG] 로딩 시작...')
     setIsLoading(true)
 
     try {
-      console.log('🎯 [DEBUG] Promise.all 시작')
-
       const updatedTodos = await Promise.all(
         todos.map(async (todo) => {
-          console.log('🎯 [DEBUG] 처리 중인 Todo:', todo.text, '완료 여부:', todo.isCompleted)
-
-          if (todo.isCompleted) {
-            console.log('🎯 [DEBUG] 완료된 Todo 스킵:', todo.text)
-            return todo
-          }
-
-          console.log('🎯 [DEBUG] searchAITools 호출:', todo.text)
+          if (todo.isCompleted) return todo
+          
           const tools = await searchAITools(todo.text)
-          console.log('🎯 [DEBUG] searchAITools 결과:', tools.length, '개')
-          console.log('🎯 [DEBUG] 결과 상세:', tools)
-
           return { ...todo, tools }
         })
       )
 
-      console.log('🎯 [DEBUG] Promise.all 완료')
-      console.log('🎯 [DEBUG] 업데이트된 Todos:', updatedTodos)
-
       setTodos(updatedTodos)
-
+      
       const firstIncompleteTodo = updatedTodos.find(t => !t.isCompleted)
       if (firstIncompleteTodo) {
-        console.log('🎯 [DEBUG] 첫 번째 Todo 펼치기:', firstIncompleteTodo.text)
         setExpandedTodoId(firstIncompleteTodo.id)
       }
-
-      console.log('🎯 [DEBUG] 추천 완료!')
     } catch (error) {
-      console.error('❌ [ERROR] 추천 실패:', error)
+      console.error('추천 실패:', error)
       alert('추천 중 오류가 발생했습니다.')
     } finally {
-      console.log('🎯 [DEBUG] 로딩 종료')
       setIsLoading(false)
     }
   }
@@ -224,12 +201,13 @@ export default function Home() {
                         <Circle className="w-5 h-5 text-gray-400" />
                       )}
                     </button>
-
+                    
                     <span
-                      className={`flex-1 ${todo.isCompleted
-                        ? 'line-through text-gray-400'
-                        : 'text-gray-900'
-                        }`}
+                      className={`flex-1 ${
+                        todo.isCompleted
+                          ? 'line-through text-gray-400'
+                          : 'text-gray-900'
+                      }`}
                     >
                       {todo.text}
                     </span>
