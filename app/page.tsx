@@ -14,7 +14,9 @@ import {
   Plus,
   Trash2,
   CheckCircle2,
-  Circle
+  Circle,
+  Heart,
+  Star
 } from 'lucide-react'
 import { searchAITools } from './actions'
 import { AITool } from '@/types'
@@ -32,6 +34,8 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false)
   const [expandedTodoId, setExpandedTodoId] = useState<string | null>(null)
   const [today, setToday] = useState('')
+  const [favorites, setFavorites] = useState<Set<string>>(new Set())
+  const [ratings, setRatings] = useState<Record<string, number>>({})
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -40,7 +44,36 @@ export default function Home() {
       month: 'long',
       day: 'numeric'
     }))
+
+    // localStorage에서 찜 & 별점 불러오기
+    try {
+      const savedFavs = localStorage.getItem('picko_favorites')
+      if (savedFavs) setFavorites(new Set(JSON.parse(savedFavs)))
+      const savedRatings = localStorage.getItem('picko_ratings')
+      if (savedRatings) setRatings(JSON.parse(savedRatings))
+    } catch { }
   }, [])
+
+  const toggleFavorite = (toolId: string) => {
+    setFavorites(prev => {
+      const next = new Set(prev)
+      if (next.has(toolId)) {
+        next.delete(toolId)
+      } else {
+        next.add(toolId)
+      }
+      localStorage.setItem('picko_favorites', JSON.stringify([...next]))
+      return next
+    })
+  }
+
+  const setRating = (toolId: string, rating: number) => {
+    setRatings(prev => {
+      const next = { ...prev, [toolId]: prev[toolId] === rating ? 0 : rating }
+      localStorage.setItem('picko_ratings', JSON.stringify(next))
+      return next
+    })
+  }
 
   const handleAddTodo = () => {
     if (!newTodoText.trim()) {
@@ -407,6 +440,40 @@ export default function Home() {
                                         📂 {tool.category_kr}
                                       </Badge>
                                     )}
+
+                                    {/* 찜 & 별점 */}
+                                    <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                                      <div className="flex items-center gap-0.5">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                          <button
+                                            key={star}
+                                            onClick={() => setRating(tool.id, star)}
+                                            className="p-0.5 transition-transform hover:scale-110"
+                                          >
+                                            <Star
+                                              className={`w-4 h-4 transition-colors ${star <= (ratings[tool.id] || 0)
+                                                ? 'fill-amber-400 text-amber-400'
+                                                : 'text-gray-300'
+                                                }`}
+                                            />
+                                          </button>
+                                        ))}
+                                        {ratings[tool.id] ? (
+                                          <span className="text-xs text-gray-400 ml-1">{ratings[tool.id]}.0</span>
+                                        ) : null}
+                                      </div>
+                                      <button
+                                        onClick={() => toggleFavorite(tool.id)}
+                                        className="p-1.5 rounded-full transition-all hover:scale-110 hover:bg-red-50"
+                                      >
+                                        <Heart
+                                          className={`w-5 h-5 transition-colors ${favorites.has(tool.id)
+                                            ? 'fill-red-500 text-red-500'
+                                            : 'text-gray-300'
+                                            }`}
+                                        />
+                                      </button>
+                                    </div>
 
                                     {tool.link && (
                                       <Button
