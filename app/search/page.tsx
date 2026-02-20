@@ -19,6 +19,7 @@ import {
   Star
 } from 'lucide-react'
 import { searchAITools } from './actions'
+import { saveFavorite, saveRating } from './interactions'
 import { AITool } from '@/types'
 
 interface Todo {
@@ -36,6 +37,7 @@ export default function Home() {
   const [today, setToday] = useState('')
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
   const [ratings, setRatings] = useState<Record<string, number>>({})
+  const [sessionId, setSessionId] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -44,6 +46,14 @@ export default function Home() {
       month: 'long',
       day: 'numeric'
     }))
+
+    // session_id 생성/불러오기
+    let sid = localStorage.getItem('picko_session_id')
+    if (!sid) {
+      sid = crypto.randomUUID()
+      localStorage.setItem('picko_session_id', sid)
+    }
+    setSessionId(sid)
 
     // localStorage에서 찜 & 별점 불러오기
     try {
@@ -54,23 +64,37 @@ export default function Home() {
     } catch { }
   }, [])
 
-  const toggleFavorite = (toolId: string) => {
+  const toggleFavorite = (toolId: string, toolName?: string) => {
     setFavorites(prev => {
       const next = new Set(prev)
-      if (next.has(toolId)) {
-        next.delete(toolId)
-      } else {
+      const willFavorite = !next.has(toolId)
+      if (willFavorite) {
         next.add(toolId)
+      } else {
+        next.delete(toolId)
       }
       localStorage.setItem('picko_favorites', JSON.stringify([...next]))
+
+      // Supabase에 저장 (fire-and-forget)
+      if (sessionId) {
+        saveFavorite(sessionId, toolId, toolName || '', willFavorite)
+      }
+
       return next
     })
   }
 
-  const setRating = (toolId: string, rating: number) => {
+  const handleSetRating = (toolId: string, rating: number, toolName?: string) => {
     setRatings(prev => {
-      const next = { ...prev, [toolId]: prev[toolId] === rating ? 0 : rating }
+      const newRating = prev[toolId] === rating ? 0 : rating
+      const next = { ...prev, [toolId]: newRating }
       localStorage.setItem('picko_ratings', JSON.stringify(next))
+
+      // Supabase에 저장 (fire-and-forget)
+      if (sessionId) {
+        saveRating(sessionId, toolId, toolName || '', newRating)
+      }
+
       return next
     })
   }
@@ -447,7 +471,7 @@ export default function Home() {
                                         {[1, 2, 3, 4, 5].map((star) => (
                                           <button
                                             key={star}
-                                            onClick={() => setRating(tool.id, star)}
+                                            onClick={() => handleSetRating(tool.id, star, tool.name)}
                                             className="p-0.5 transition-transform hover:scale-110"
                                           >
                                             <Star
@@ -463,7 +487,7 @@ export default function Home() {
                                         ) : null}
                                       </div>
                                       <button
-                                        onClick={() => toggleFavorite(tool.id)}
+                                        onClick={() => toggleFavorite(tool.id, tool.name)}
                                         className="p-1.5 rounded-full transition-all hover:scale-110 hover:bg-red-50"
                                       >
                                         <Heart
