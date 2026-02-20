@@ -38,10 +38,17 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false)
   const [expandedTodoId, setExpandedTodoId] = useState<string | null>(null)
   const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [today, setToday] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
   useEffect(() => {
+    setToday(new Date().toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }))
+
     const supabase = createBrowserSupabaseClient()
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user)
@@ -53,12 +60,6 @@ export default function Home() {
     await supabase.auth.signOut()
     router.push('/login')
   }
-
-  const today = new Date().toLocaleDateString('ko-KR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })
 
   const handleAddTodo = () => {
     if (!newTodoText.trim()) {
