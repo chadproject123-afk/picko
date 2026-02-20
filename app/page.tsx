@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -15,10 +16,14 @@ import {
   Plus,
   Trash2,
   CheckCircle2,
-  Circle
+  Circle,
+  LogOut,
+  User
 } from 'lucide-react'
 import { searchAITools } from './actions'
 import { AITool } from '@/types'
+import { createBrowserSupabaseClient } from '@/lib/supabase'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 interface Todo {
   id: string
@@ -32,7 +37,22 @@ export default function Home() {
   const [newTodoText, setNewTodoText] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [expandedTodoId, setExpandedTodoId] = useState<string | null>(null)
+  const [user, setUser] = useState<SupabaseUser | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const router = useRouter()
+
+  useEffect(() => {
+    const supabase = createBrowserSupabaseClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user)
+    })
+  }, [])
+
+  const handleLogout = async () => {
+    const supabase = createBrowserSupabaseClient()
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
 
   const today = new Date().toLocaleDateString('ko-KR', {
     year: 'numeric',
@@ -160,12 +180,29 @@ export default function Home() {
               </Badge>
             </motion.div>
             <motion.div
-              className="flex items-center gap-2 text-sm text-gray-500"
+              className="flex items-center gap-3"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
             >
-              <Calendar className="w-4 h-4" />
-              {today}
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Calendar className="w-4 h-4" />
+                {today}
+              </div>
+              {user && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 hidden sm:inline">
+                    {user.user_metadata?.name || user.email?.split('@')[0]}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleLogout}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
             </motion.div>
           </div>
         </div>
