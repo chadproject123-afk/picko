@@ -164,7 +164,7 @@ export default function Home() {
           }
 
           console.log('🎯 [DEBUG] searchAITools 호출:', todo.text)
-          const tools = await searchAITools(todo.text)
+          const tools = await searchAITools(todo.text, deviceId)
           console.log('🎯 [DEBUG] searchAITools 결과:', tools.length, '개')
           console.log('🎯 [DEBUG] 결과 상세:', tools)
 

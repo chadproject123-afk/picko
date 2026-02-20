@@ -7,12 +7,13 @@ import { AITool } from '@/types'
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
 // 검색 로그를 Supabase에 저장 (fire-and-forget)
-async function logSearch(query: string, results: AITool[]) {
+async function logSearch(query: string, results: AITool[], deviceId?: string) {
   try {
     await supabase.from('search_logs').insert({
       search_query: query,
       result_count: results.length,
       recommended_tools: results.map(t => t.name),
+      ...(deviceId ? { device_id: deviceId } : {}),
     })
     console.log('📊 검색 로그 저장 완료:', query, '→', results.length, '개')
   } catch (err) {
@@ -20,7 +21,7 @@ async function logSearch(query: string, results: AITool[]) {
   }
 }
 
-export async function searchAITools(userInput: string): Promise<AITool[]> {
+export async function searchAITools(userInput: string, deviceId?: string): Promise<AITool[]> {
   try {
     console.log('🔍 검색 시작:', userInput)
 
@@ -126,27 +127,27 @@ export async function searchAITools(userInput: string): Promise<AITool[]> {
 
       if (!model) {
         const result = allTools.slice(0, 10)
-        logSearch(userInput, result)
+        logSearch(userInput, result, deviceId)
         return result
       }
       const result = await recommendWithGemini(userInput, allTools, model)
-      logSearch(userInput, result)
+      logSearch(userInput, result, deviceId)
       return result
     }
 
     if (uniqueTools.length <= 10) {
       console.log('✅ 결과 10개 이하 → 바로 반환')
-      logSearch(userInput, uniqueTools)
+      logSearch(userInput, uniqueTools, deviceId)
       return uniqueTools
     }
 
     if (!model) {
       const result = uniqueTools.slice(0, 10)
-      logSearch(userInput, result)
+      logSearch(userInput, result, deviceId)
       return result
     }
     const result = await recommendWithGemini(userInput, uniqueTools.slice(0, 100), model)
-    logSearch(userInput, result)
+    logSearch(userInput, result, deviceId)
     return result
 
   } catch (error) {
@@ -165,7 +166,7 @@ export async function searchAITools(userInput: string): Promise<AITool[]> {
 
       if (data && data.length > 0) {
         console.log('🔄 Fallback 검색 성공:', data.length, '개')
-        logSearch(userInput, data)
+        logSearch(userInput, data, deviceId)
         return data
       }
     } catch (fallbackError) {
