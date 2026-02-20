@@ -6,6 +6,20 @@ import { AITool } from '@/types'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
+// 검색 로그를 Supabase에 저장 (fire-and-forget)
+async function logSearch(query: string, results: AITool[]) {
+  try {
+    await supabase.from('search_logs').insert({
+      search_query: query,
+      result_count: results.length,
+      recommended_tools: results.map(t => t.name),
+    })
+    console.log('📊 검색 로그 저장 완료:', query, '→', results.length, '개')
+  } catch (err) {
+    console.warn('⚠️ 검색 로그 저장 실패 (무시):', err)
+  }
+}
+
 export async function searchAITools(userInput: string): Promise<AITool[]> {
   try {
     console.log('🔍 검색 시작:', userInput)
@@ -47,7 +61,6 @@ export async function searchAITools(userInput: string): Promise<AITool[]> {
         : userInput.split(/\s+/).filter(word => word.length > 1)
     } catch (geminiError) {
       console.warn('⚠️ Gemini API 실패, 단순 키워드로 fallback:', geminiError instanceof Error ? geminiError.message : geminiError)
-      // Gemini가 실패하면 사용자 입력을 단순 분할하여 키워드로 사용
       keywords = userInput.split(/\s+/).filter(word => word.length > 1)
       if (keywords.length === 0) {
         keywords = [userInput]
@@ -111,28 +124,34 @@ export async function searchAITools(userInput: string): Promise<AITool[]> {
         return []
       }
 
-      // Gemini model이 없으면 상위 10개만 반환
       if (!model) {
-        return allTools.slice(0, 10)
+        const result = allTools.slice(0, 10)
+        logSearch(userInput, result)
+        return result
       }
-      return await recommendWithGemini(userInput, allTools, model)
+      const result = await recommendWithGemini(userInput, allTools, model)
+      logSearch(userInput, result)
+      return result
     }
 
     if (uniqueTools.length <= 10) {
       console.log('✅ 결과 10개 이하 → 바로 반환')
+      logSearch(userInput, uniqueTools)
       return uniqueTools
     }
 
-    // Gemini model이 없으면 상위 10개만 반환
     if (!model) {
-      return uniqueTools.slice(0, 10)
+      const result = uniqueTools.slice(0, 10)
+      logSearch(userInput, result)
+      return result
     }
-    return await recommendWithGemini(userInput, uniqueTools.slice(0, 100), model)
+    const result = await recommendWithGemini(userInput, uniqueTools.slice(0, 100), model)
+    logSearch(userInput, result)
+    return result
 
   } catch (error) {
     console.error('❌ 검색 에러:', error instanceof Error ? error.message : error)
 
-    // 최종 fallback: 단순 Supabase 검색
     try {
       const { data } = await supabase
         .from('ai_tools')
@@ -146,6 +165,7 @@ export async function searchAITools(userInput: string): Promise<AITool[]> {
 
       if (data && data.length > 0) {
         console.log('🔄 Fallback 검색 성공:', data.length, '개')
+        logSearch(userInput, data)
         return data
       }
     } catch (fallbackError) {
