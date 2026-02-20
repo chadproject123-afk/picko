@@ -37,7 +37,7 @@ export default function Home() {
   const [today, setToday] = useState('')
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
   const [ratings, setRatings] = useState<Record<string, number>>({})
-  const [sessionId, setSessionId] = useState('')
+  const [deviceId, setDeviceId] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -53,7 +53,7 @@ export default function Home() {
       sid = crypto.randomUUID()
       localStorage.setItem('picko_session_id', sid)
     }
-    setSessionId(sid)
+    setDeviceId(sid)
 
     // localStorage에서 찜 & 별점 불러오기
     try {
@@ -76,8 +76,8 @@ export default function Home() {
       localStorage.setItem('picko_favorites', JSON.stringify([...next]))
 
       // Supabase에 저장 (fire-and-forget)
-      if (sessionId) {
-        saveFavorite(sessionId, toolId, toolName || '', willFavorite)
+      if (deviceId) {
+        saveFavorite(deviceId, toolId, toolName || '', willFavorite)
       }
 
       return next
@@ -91,8 +91,8 @@ export default function Home() {
       localStorage.setItem('picko_ratings', JSON.stringify(next))
 
       // Supabase에 저장 (fire-and-forget)
-      if (sessionId) {
-        saveRating(sessionId, toolId, toolName || '', newRating)
+      if (deviceId) {
+        saveRating(deviceId, toolId, toolName || '', newRating)
       }
 
       return next

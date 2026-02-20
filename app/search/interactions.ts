@@ -13,14 +13,14 @@ export async function saveFavorite(
             .from('user_interactions')
             .upsert(
                 {
-                    session_id: sessionId,
+                    device_id: sessionId,
                     tool_id: toolId,
                     tool_name: toolName,
                     interaction_type: 'favorite',
                     is_favorited: isFavorited,
                     updated_at: new Date().toISOString(),
                 },
-                { onConflict: 'session_id,tool_id,interaction_type' }
+                { onConflict: 'device_id,tool_id,interaction_type' }
             )
 
         if (error) {
@@ -44,14 +44,14 @@ export async function saveRating(
             .from('user_interactions')
             .upsert(
                 {
-                    session_id: sessionId,
+                    device_id: sessionId,
                     tool_id: toolId,
                     tool_name: toolName,
                     interaction_type: 'rating',
                     rating_value: ratingValue,
                     updated_at: new Date().toISOString(),
                 },
-                { onConflict: 'session_id,tool_id,interaction_type' }
+                { onConflict: 'device_id,tool_id,interaction_type' }
             )
 
         if (error) {
